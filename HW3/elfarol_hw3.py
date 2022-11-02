@@ -8,10 +8,10 @@ import pandas as pd
 import seaborn as sns
 sns.set_theme(style="whitegrid")
 np.random.seed(42)
-import random, sys
-seed = random.randrange(sys.maxsize)
-rng = random.Random(seed)
-print("Seed was:", seed)
+# import random, sys
+# seed = random.randrange(sys.maxsize)
+# rng = random.Random(seed)
+# print("Seed was:", seed)
 
 #El Farol bar problem
 # z_prime is the state where action of agent i is different from the system state
@@ -31,7 +31,7 @@ class ElFarol :
         self.iterations = 10000
         self.k = k
         self.gamma = 0.99
-        self.total_weeks = 1000
+        self.total_weeks = 10000
         self.global_reward = []
         self.xk = np.zeros((self.total_weeks, self.k)) #collection of attendance over k nights
         self.z = np.zeros(( self.total_weeks, k, n_agents)) #state of agent i
@@ -122,21 +122,22 @@ class ElFarol :
 
         if reward_choice == 2:
             #difference reward
-            c_i  = np.random.choice(self.n_agents, size = (self.k,))
+            # c_i  = np.random.choice(self.n_agents, size = (self.k,))
             # c_i = x
             # c_i = np.array([self.b]*self.k) #best
-            c_i[night] = x[night]-1
+            # c_i[night] = x[night]-1
             # c_i = x
             # c_i[night] = c_i[night]-1
-            gi = (x@np.exp(-x/self.b) - c_i@np.exp(-c_i/self.b))#  if x[night] < self.b else -1*(x@np.exp(-x/self.b) - c_i@np.exp(-c_i/self.b))
+            # gi = (x@np.exp(-x/self.b) - c_i@np.exp(-c_i/self.b))#  if x[night] < self.b else -1*(x@np.exp(-x/self.b) - c_i@np.exp(-c_i/self.b))
             # gi = x[night]*np.exp(-x[night]/self.b) - c_i[night]*np.exp(-c_i[night]/self.b) # if x[night] < self.b else -1*(
+            gi = (x @ np.exp(-x / self.b) - (x-1) @ np.exp(-(x-1) / self.b))  #
 
         if reward_choice == 3:
             # local difference reward
-            c_i  = np.random.choice(self.n_agents, size = (1,))[0]
+            # c_i  = np.random.choice(self.n_agents, size = (1,))[0]
             # c_i = self.b #best
             # c_i = x[night]
-            # c_i = x[night]-1
+            c_i = x-1
             gi = x*np.exp(-x/self.b) - c_i*np.exp(-c_i/self.b) # if x[night] < self.b else -1*(
 
         return gi
@@ -247,18 +248,20 @@ class ElFarol :
     ######### Learning Algorithms #########
     def q_learning(self, choice):
         gamma = 0.99
-        alpha = 1
+        alpha = 0.9
         # delta = np.ones((self.n_agents, self.k))
         global_reward = []
-        epsilon = 0.3
+        epsilon = 0.5
         agent_choice = np.zeros((self.total_weeks, self.k, self.n_agents))
         agent_reward = np.zeros((self.total_weeks, self.k, self.n_agents))
-
+        temperature = 0
         for week in range(self.total_weeks):
+            temperature = temperature + 1
+            # print(temperature, week)
             agent_attendances = np.zeros(self.k)
             for agent_i in range(self.n_agents):
-                if np.random.rand() < epsilon:
-                    night = np.random.choice(self.k, 1)[0]
+                if temperature < (self.total_weeks - self.total_weeks/3):
+                    night =  np.random.choice(self.k, 1)[0] if np.random.rand() < epsilon else np.argmax(self.agent_estimate[agent_i,:])
                 else:
                     night = np.argmax(self.agent_estimate[agent_i,:])
                 self.z[week, night, agent_i] = 1
